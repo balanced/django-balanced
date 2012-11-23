@@ -16,15 +16,15 @@ TODO:
 
 
 class BalancedAdmin(admin.ModelAdmin):
-    add_exclude = ()
-    edit_exclude = ()
+    add_fields = ()
+    edit_fields = ()
 
     def add_view(self, *args, **kwargs):
-        self.exclude = getattr(self, 'add_exclude', self.exclude)
+        self.fields = getattr(self, 'add_fields', self.fields)
         return super(BalancedAdmin, self).add_view(*args, **kwargs)
 
     def change_view(self, *args, **kwargs):
-        self.exclude = getattr(self, 'edit_exclude', self.exclude)
+        self.fields = getattr(self, 'edit_fields', self.fields)
         return super(BalancedAdmin, self).change_view(*args, **kwargs)
 
 
@@ -40,59 +40,40 @@ class BankAccountAdminForm(forms.ModelForm):
     class Meta:
         model = BankAccount
 
-    def clean(self):
-        data = self.cleaned_data
-        # TODO: validate routing number
-        #        routing_number = balanced.BankAccount(
-        #            routing_number=data['routing_number'],
-        #        )
-        #        try:
-        #            routing_number.validate()
-        #        except balanced.exc.HTTPError as ex:
-        #            if 'routing_number' in ex.message:
-        #                raise forms.ValidationError(ex.message)
-        #            raise
-        return data
+#
+#    def clean(self):
+#        data = self.cleaned_data
+#        # TODO: validate routing number
+#        #        routing_number = balanced.BankAccount(
+#        #            routing_number=data['routing_number'],
+#        #        )
+#        #        try:
+#        #            routing_number.validate()
+#        #        except balanced.exc.HTTPError as ex:
+#        #            if 'routing_number' in ex.message:
+#        #                raise forms.ValidationError(ex.message)
+#        #            raise
+#        return data
 
 
 class BankAccountAdmin(BalancedAdmin):
-    fields = ('name', 'account_number', 'routing_number', 'type', 'user')
-    edit_exclude = ('name', 'account_number', 'routing_number', 'type')
+    add_fields = ('name', 'account_number', 'routing_number', 'type', 'user')
+    edit_fields = ('user',)
     list_display = ['account_number', 'created_at', 'user', 'name',
                     'bank_name', 'type', 'dashboard_link']
+    list_filter = ['type', 'bank_name', 'user']
     search_fields = ['name', 'account_number']
     form = BankAccountAdminForm
 
     def save_model(self, request, obj, form, change):
-        user = form.data['user']
-        meta = {}
-        if user:
-            meta['user'] = user
-        if not obj:
-            bank_account = balanced.BankAccount(
-                routing_number=form.data['routing_number'],
-                account_number=form.data['account_number'],
-                name=form.data['name'],
-                type=form.data['type'],
-                meta=meta,
-            )
-        else:
-            bank_account = balanced.BankAccount.find(form.data['uri'])
-            bank_account.meta = meta
-        try:
-            bank_account.save()
-        except balanced.exc.HTTPError as ex:
-            if 'routing_number' in ex.message:
-                raise forms.ValidationError(ex.message)
-            raise
-        obj.uri = bank_account.uri
-        obj.created_at = bank_account.created_at
-        obj.account_number = bank_account.account_number
-        obj.bank_name = bank_account.bank_name
-        obj.routing_number = bank_account.routing_number
-        obj.type = bank_account.type
-        obj.name = bank_account.name
-        obj.save()
+        data = form.data
+        obj.name = data['name']
+        obj.account_number = data['account_number']
+        obj.routing_number = data['routing_number']
+        obj.type = data['type']
+        if data['user']:
+            obj.user = User.objects.get(pk=data['user'])
+        super(BalancedAdmin, self).save_model(request, obj, form, change)
 
 
 class CreditAdminForm(forms.ModelForm):
@@ -117,11 +98,12 @@ class CreditAdminForm(forms.ModelForm):
 
 
 class CreditAdmin(BalancedAdmin):
-    fields = ('amount', 'bank_account', 'description')
-    edit_exclude = ('amount', 'bank_account')
+    add_fields = ('amount', 'bank_account', 'description')
+    edit_fields = (None)
     list_display = ['user', 'bank_account', 'amount',
                     'description', 'status', 'dashboard_link']
-    search_fields = ['amount', 'description', 'status'],
+    search_fields = ['amount', 'description', 'status']
+    list_filter = ['user', 'status']
     form = CreditAdminForm
 
     def get_form(self, request, obj=None, **kwargs):
@@ -130,29 +112,13 @@ class CreditAdmin(BalancedAdmin):
         return super(CreditAdmin, self).get_form(request, obj=None, **kwargs)
 
     def save_model(self, request, obj, form, change):
-        if not obj:
-            amount = int(float(form.data['amount']) * 100)
-            bank_account = balanced.BankAccount.find(form.data['bank_account'])
-            credit = balanced.Credit(
-                uri=bank_account.credits_uri,
-                amount=amount,
-                description=form.data['description'],
-            )
-        else:
-            credit = balanced.Credit.find(obj.uri)
-            credit.description = form.data['description']
-        try:
-            credit.save()
-        except balanced.exc.HTTPError as ex:
-            raise ex
-        bank_account = BankAccount.objects.get(pk=credit.bank_account.uri)
-        obj.amount = credit.amount / 100.0
-        obj.created_at = credit.created_at
-        obj.description = credit.description
+        data = form.data
+        amount = int(float(data['amount']) * 100)
+        bank_account = BankAccount.objects.get(pk=data['bank_account'])
+        obj.amount = amount
         obj.bank_account = bank_account
         obj.user = bank_account.user
-        obj.status = credit.status
-        obj.uri = credit.uri
+        obj.description = data['description']
         obj.save()
 
 

@@ -8,7 +8,7 @@ def balanced_settings(request):
     return {
         'BALANCED': {
             'MARKETPLACE_URI': balanced.Marketplace.my_marketplace.uri,
-            'DASHBOARD_URL': settings['BALANCED']['DASHBOARD_URL'],
-            'API_URL': settings['BALANCED']['DASHBOARD_URL'],
+            'DASHBOARD_URL': settings.BALANCED['DASHBOARD_URL'],
+            'API_URL': settings.BALANCED['DASHBOARD_URL'],
         }
     }
