@@ -48,7 +48,7 @@ class BankAccount(BalancedResource):
     type = models.CharField(editable=False, max_length=255)
 
     class Meta:
-        app_label = 'Balanced'
+#        app_label = 'Balanced'
         db_table = 'balanced_bank_accounts'
 
     def __unicode__(self):
@@ -79,6 +79,17 @@ class BankAccount(BalancedResource):
         bank_account.delete()
         super(BankAccount, self).delete(using)
 
+    def credit(self, amount, description=None):
+        bank_account = self.find()
+        credit = bank_account.credit(amount, description)
+
+        django_credit = Credit()
+        django_credit._sync(credit)
+        django_credit.bank_account = self
+        django_credit.user = self.user
+        django_credit.amount /= 100.0
+        django_credit.save()
+
 
 class Credit(BalancedResource):
     __resource__ = balanced.Credit
@@ -96,7 +107,7 @@ class Credit(BalancedResource):
     status = models.CharField(editable=False, max_length=255)
 
     class Meta:
-        app_label = 'Balanced'
+#        app_label = 'Balanced'
         db_table = 'balanced_credits'
 
     def sync(self):
@@ -111,13 +122,12 @@ class Credit(BalancedResource):
                 amount=self.amount,
                 description=self.description,
             )
+            try:
+                credit.save()
+            except balanced.exc.HTTPError as ex:
+                raise ex
         else:
             credit = self.find()
-
-        try:
-            credit.save()
-        except balanced.exc.HTTPError as ex:
-            raise ex
 
         self._sync(credit)
         self.amount = credit.amount / 100.0

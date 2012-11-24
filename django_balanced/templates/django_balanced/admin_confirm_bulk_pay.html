@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+<form action="{% url admin:bank_account_bulk_pay %}" method="post">
+    {% csrf_token %}
+    <p>How much do you want to pay to the following bank accounts:</p>
+    <table>
+        <thead>
+            <tr>
+                <td>Bank account</td>
+                <td>Amount</td>
+                <td>Description</td>
+            </tr>
+        </thead>
+        <tbody>
+        {% for index, bank_account in bank_accounts %}
+        <input type="hidden" name="bank_account_{{ index }}" value="{{ bank_account.uri }}">
+        <tr>
+            <td>{{ bank_account }}</td>
+            <td><input type="number" name="bank_account_{{ index }}_amount"
+                       value="" step="any" min="0.5"></td>
+            <td><input type="text" name="bank_account_{{ index }}_description"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button>Pay bank accounts</button>
+
+</form>
+
+{% endblock %}

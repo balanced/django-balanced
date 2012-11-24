@@ -2,8 +2,11 @@ from __future__ import unicode_literals
 
 import balanced
 from django import forms
+from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.contrib.auth.models import User
+from django.core import urlresolvers
+from django.shortcuts import render, redirect
 
 from django_balanced.models import BankAccount, Credit
 
@@ -34,7 +37,7 @@ class BankAccountAdminForm(forms.ModelForm):
     routing_number = forms.CharField(max_length=255)
     type = forms.ChoiceField(choices=(
         ('savings', 'savings'), ('checking', 'checking')
-        ))
+    ))
     user = forms.ModelChoiceField(queryset=User.objects, required=False)
 
     class Meta:
@@ -64,6 +67,49 @@ class BankAccountAdmin(BalancedAdmin):
     list_filter = ['type', 'bank_name', 'user']
     search_fields = ['name', 'account_number']
     form = BankAccountAdminForm
+    actions = ['bulk_pay_action']
+
+    def bulk_pay_action(self, request, queryset):
+        return render(request, 'django_balanced/admin_confirm_bulk_pay.html', {
+            'bank_accounts': enumerate(queryset),
+        }, current_app=self.admin_site.name)
+
+    bulk_pay_action.short_description = 'Credit selected accounts'
+
+    def get_urls(self):
+        urls = super(BankAccountAdmin, self).get_urls()
+        my_urls = patterns('django_balanced.admin',
+                           url(r'^bulk_pay/$',
+                               self.admin_site.admin_view(self.bulk_pay_view),
+                               name='bank_account_bulk_pay')
+                           )
+        return my_urls + urls
+
+    def bulk_pay_view(self, request):
+        charges = []
+        index = 0
+        total = 0
+        while True:
+            prefix = 'bank_account_%s' % index
+            uri = request.POST.get(prefix)
+            if not uri:
+                break
+            description = request.POST.get('%s_description' % prefix)
+            amount = float(request.POST.get('%s_amount' % prefix))
+            amount = int(amount * 100)
+            bank_account = BankAccount.objects.get(pk=uri)
+            total += amount
+            charges.append(
+                (bank_account, amount, description)
+            )
+            index += 1
+        balanced.bust_cache()
+        escrow = balanced.Marketplace.my_marketplace.in_escrow
+        if total > escrow:
+            raise Exception('You have insufficient funds.')
+        for bank_account, amount, description in charges:
+            bank_account.credit(amount, description)
+        return redirect(urlresolvers.reverse('admin:index'))
 
     def save_model(self, request, obj, form, change):
         data = form.data
