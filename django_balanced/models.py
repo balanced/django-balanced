@@ -26,8 +26,15 @@ class BalancedResource(models.Model):
     def find(self):
         return self.__resource__.find(self.uri)
 
-    def sync(self):
-        pass
+    @classmethod
+    def sync(cls):
+        for resource in cls.__resource__.query:
+            try:
+                existing = cls.objects.get(uri=resource.uri)
+            except cls.DoesNotExist:
+                existing = cls()
+            existing._sync(resource)
+            existing.save()
 
     def _sync(self, obj):
         for field in self._meta.get_all_field_names():
@@ -96,7 +103,8 @@ class Credit(BalancedResource):
 
     user = models.ForeignKey(User,
                              related_name='credits',
-                             editable=False)
+                             editable=False,
+                             null=True)
     bank_account = models.ForeignKey(BankAccount,
                                      related_name='credits',
                                      editable=False)
@@ -109,10 +117,6 @@ class Credit(BalancedResource):
     class Meta:
 #        app_label = 'Balanced'
         db_table = 'balanced_credits'
-
-    def sync(self):
-        ba = self.__resource__.find(self.uri)
-        self.status = ba.status
 
     def save(self, **kwargs):
         if not self.uri:
@@ -131,6 +135,9 @@ class Credit(BalancedResource):
 
         self._sync(credit)
         self.amount = credit.amount / 100.0
+        if not self.bank_account_id:
+            bank_account = BankAccount.objects.get(pk=credit.bank_account.uri)
+            self.bank_account = bank_account
 
         super(Credit, self).save(**kwargs)
 
