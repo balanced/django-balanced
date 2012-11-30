@@ -28,7 +28,7 @@ def _get_version():
 
 
 def _get_long_description():
-    path = os.path.join(PATH_TO_FILE, 'README.md')
+    path = os.path.join(PATH_TO_FILE, 'README')
     fo = open(path)
     try:
         return fo.read()
