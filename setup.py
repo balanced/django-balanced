@@ -75,6 +75,7 @@ setup(
     description='Payments platform for marketplaces',
     long_description=LONG_DESCRIPTION,
     packages=['django_balanced'],
+    package_data={'': ['README.md']},
     test_suite='nose.collector',
     install_requires=parse_requirements('requirements.txt'),
     dependency_links=parse_dependency_links('requirements.txt'),
