@@ -1,8 +1,11 @@
 import os
+import logging
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+
+LOGGER = logging.getLogger(__name__)
 
 BALANCED = getattr(settings, 'BALANCED', {})
 BALANCED.setdefault('DASHBOARD_URL', 'https://www.balancedpayments.com')
@@ -33,5 +36,4 @@ settings.TEMPLATE_DIRS += (
 )
 
 if not BALANCED.get('API_KEY'):
-    raise ImproperlyConfigured('You must set the BALANCED_API_KEY environment '
-                               'variable.')
+    LOGGER.error('You must set the BALANCED_API_KEY environment variable.')
