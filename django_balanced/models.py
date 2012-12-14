@@ -97,6 +97,8 @@ class BankAccount(BalancedResource):
         django_credit.amount /= 100.0
         django_credit.save()
 
+        return django_credit
+
 
 class Credit(BalancedResource):
     __resource__ = balanced.Credit

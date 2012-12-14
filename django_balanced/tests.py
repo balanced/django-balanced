@@ -40,16 +40,18 @@ class ModelsTest(TestCase):
         pass
 
     def test_create_credit(self):
-        pass
+        bank_account = models.BankAccount(**FIXTURES['bank_account'])
+        bank_account.save()
 
-    def test_update_credit(self):
-        pass
+        # create a second bank account to ensure that we're testing the correct
+        # bank account in the case of multiple accounts being available.
+        models.BankAccount(**FIXTURES['bank_account']).save()
+        credit = bank_account.credit(100)
+        self.assertEqual(credit.amount * 100, 100)
+        self.assertEqual(credit.bank_account.uri, bank_account.uri)
 
     def test_create_bank_account(self):
         bank_account = models.BankAccount(**FIXTURES['bank_account'])
         bank_account.save()
         self.assertTrue(bank_account.bank_name)
         self.assertTrue(bank_account.uri)
-
-    def test_update_bank_account(self):
-        pass
