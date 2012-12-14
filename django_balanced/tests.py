@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 import balanced
-from django.test import TestCase
 import mock
+
+from django.test import TestCase
+from django.contrib.auth.models import User
 
 from django_balanced import models
 
@@ -31,10 +33,14 @@ class ModelsTest(TestCase):
             cls.api_key = balanced.APIKey().save()
         balanced.configure(cls.api_key.secret)
         cls.marketplace = balanced.Marketplace().save()
-        cls.card = balanced.Card(**FIXTURES['card']).save()
-        cls.buyer = balanced.Account(card_uri=cls.card.uri).save()
+        cls.user = User.objects.create_user('john', 'john@test.com', 'pass')
+        cls.user.save()
+
+        card = balanced.Card(**FIXTURES['card']).save()
+        cls.card = models.Card.create_from_card_uri(cls.user, card.uri)
+        cls.buyer = cls.card.user.balanced_account
         # put some money in the escrow account
-        cls.buyer.debit(100 * 100)  # $100.00
+        cls.buyer.debit(100 * 100, 'test')  # $100.00
 
     def setUp(self):
         pass
