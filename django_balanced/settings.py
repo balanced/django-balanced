@@ -2,7 +2,6 @@ import os
 import logging
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +18,7 @@ installed_apps += (
     'django_balanced',
 )
 ctx_processors = [
+    'django_balanced.context_processors.balanced_library',
     'django_balanced.context_processors.balanced_settings',
     'django.contrib.auth.context_processors.auth',
 ]
