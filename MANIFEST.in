@@ -1,3 +1,4 @@
 include README.md
 include requirements.txt
 include test-requirements.txt
+recursive-include django_balanced *.html

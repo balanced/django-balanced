@@ -16,6 +16,7 @@ class BalancedException(Exception):
 
 class BalancedResource(models.Model):
     _resource = balanced.Resource
+    id = models.CharField(max_length=255, editable=False)
     uri = models.CharField(primary_key=True, max_length=255, editable=False)
     created_at = models.DateTimeField(auto_created=True, editable=False)
 

@@ -1,3 +1,3 @@
-__version__ = '0.1.2e'
+__version__ = '0.1.7'
 
 from . import settings

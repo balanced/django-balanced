@@ -74,8 +74,17 @@ setup(
     author_email='support@balancedpayments.com',
     description='Payments platform for marketplaces',
     long_description=LONG_DESCRIPTION,
-    packages=['django_balanced'],
-    package_data={'': ['README.md']},
+    packages=[
+        'django_balanced',
+        'django_balanced.management',
+        'django_balanced.management.commands',
+    ],
+    package_dir={
+        'django_balanced': 'django_balanced',
+    },
+    package_data={
+        '': ['README.md'],
+    },
     test_suite='nose.collector',
     install_requires=parse_requirements('requirements.txt'),
     dependency_links=parse_dependency_links('requirements.txt'),
